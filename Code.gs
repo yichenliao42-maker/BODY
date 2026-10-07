@@ -55,6 +55,8 @@ function doPost(e){
     const a=d.action||'registerBatch';
 
     if(a==='registerBatch') return registerBatch_(d);
+    if(a==='refreshLineFriendByToken') return refreshLineFriendByToken_(d);
+    if(a==='rebindLineByPhone') return rebindLineByPhone_(d);
     if(a==='register'){
       d.selections=[{courseId:d.courseId,session:d.session}];
       return registerBatch_(d);
@@ -82,6 +84,8 @@ function doPost(e){
     if(a==='updateCourseSettings') return updateSettings_(d);
     if(a==='confirmAndNotify') return confirmAndNotify_(d);
     if(a==='sendLineNotify') return sendLineNotifyAction_(d);
+    if(a==='refreshLineStatusForBooking') return refreshLineStatusForBooking_(d);
+    if(a==='refreshAllLineStatuses') return refreshAllLineStatuses_(d);
 
     return json_({success:false,message:'不支援的操作'});
   }catch(err){
@@ -208,6 +212,146 @@ function registerBatch_(d){
   }
 }
 
+
+function refreshLineStatusForBooking_(d){
+  const id=String(d.bookingId||'').trim();
+  if(!id) return json_({success:false,message:'缺少報名編號'});
+
+  const rows=rows_();
+  const t=rows.find(r=>r.bookingId===id);
+
+  if(!t) return json_({success:false,message:'找不到這筆報名'});
+  if(!t.lineUserId){
+    return json_({
+      success:false,
+      message:'這筆舊報名沒有 LINE User ID，無法由管理員端直接更新。需要學員重新登入 LINE 一次。'
+    });
+  }
+
+  const result=checkMessagingProfile_(t.lineUserId);
+
+  if(result.available){
+    const sheet=bookSheet_();
+    sheet.getRange(t.rowNumber,16).setValue(result.displayName||t.lineDisplayName||'');
+    sheet.getRange(t.rowNumber,17).setValue('是');
+
+    // 若之前尚未真正送過通知，不要覆蓋「已送出」
+    if(t.notifyStatus!=='已送出'){
+      sheet.getRange(t.rowNumber,18).setValue('已綁定／可通知');
+    }
+
+    sheet.getRange(t.rowNumber,13).setValue(new Date());
+    SpreadsheetApp.flush();
+
+    return json_({
+      success:true,
+      available:true,
+      displayName:result.displayName||'',
+      message:'LINE 狀態已更新：可通知'
+    });
+  }
+
+  const sheet=bookSheet_();
+  sheet.getRange(t.rowNumber,17).setValue('否');
+
+  if(t.notifyStatus!=='已送出'){
+    sheet.getRange(t.rowNumber,18).setValue('未加好友／封鎖／無法取得');
+  }
+
+  sheet.getRange(t.rowNumber,13).setValue(new Date());
+  SpreadsheetApp.flush();
+
+  return json_({
+    success:true,
+    available:false,
+    message:'目前仍無法由官方帳號取得此 LINE 使用者資料'
+  });
+}
+
+function refreshAllLineStatuses_(d){
+  const rows=rows_().filter(r=>
+    r.lineUserId &&
+    r.bookingStatus!=='已取消'
+  );
+
+  let available=0;
+  let unavailable=0;
+  let errors=0;
+
+  const sheet=bookSheet_();
+
+  rows.forEach(t=>{
+    try{
+      const result=checkMessagingProfile_(t.lineUserId);
+
+      if(result.available){
+        available++;
+        sheet.getRange(t.rowNumber,16).setValue(result.displayName||t.lineDisplayName||'');
+        sheet.getRange(t.rowNumber,17).setValue('是');
+
+        if(t.notifyStatus!=='已送出'){
+          sheet.getRange(t.rowNumber,18).setValue('已綁定／可通知');
+        }
+      }else{
+        unavailable++;
+        sheet.getRange(t.rowNumber,17).setValue('否');
+
+        if(t.notifyStatus!=='已送出'){
+          sheet.getRange(t.rowNumber,18).setValue('未加好友／封鎖／無法取得');
+        }
+      }
+
+      sheet.getRange(t.rowNumber,13).setValue(new Date());
+
+    }catch(err){
+      errors++;
+    }
+  });
+
+  SpreadsheetApp.flush();
+
+  return json_({
+    success:true,
+    checked:rows.length,
+    available,
+    unavailable,
+    errors,
+    message:'LINE 狀態批次更新完成'
+  });
+}
+
+function checkMessagingProfile_(userId){
+  const token=PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+
+  if(!token){
+    throw new Error('尚未設定 LINE_CHANNEL_ACCESS_TOKEN');
+  }
+
+  const res=UrlFetchApp.fetch(
+    'https://api.line.me/v2/bot/profile/'+encodeURIComponent(userId),
+    {
+      method:'get',
+      headers:{Authorization:'Bearer '+token},
+      muteHttpExceptions:true
+    }
+  );
+
+  const code=res.getResponseCode();
+
+  if(code===200){
+    const p=JSON.parse(res.getContentText()||'{}');
+    return {
+      available:true,
+      displayName:String(p.displayName||'')
+    };
+  }
+
+  return {
+    available:false,
+    statusCode:code
+  };
+}
+
 function confirmAndNotify_(d){
   const id=String(d.bookingId||'');
   if(!id) return json_({success:false,message:'缺少報名編號'});
@@ -242,7 +386,32 @@ function confirmAndNotify_(d){
     sheet.getRange(t.rowNumber,13).setValue(new Date());
     SpreadsheetApp.flush();
 
-    const fresh=rows_().find(r=>r.bookingId===id);
+    let fresh=rows_().find(r=>r.bookingId===id);
+    // 先用 Messaging API 主動刷新一次 LINE 狀態
+    // 這樣學員如果是「報名後才加好友」，管理員不用要求他重新下單。
+    if(fresh.lineUserId){
+      try{
+        const lineCheck=checkMessagingProfile_(fresh.lineUserId);
+        const sheet2=bookSheet_();
+
+        if(lineCheck.available){
+          sheet2.getRange(fresh.rowNumber,16).setValue(lineCheck.displayName||fresh.lineDisplayName||'');
+          sheet2.getRange(fresh.rowNumber,17).setValue('是');
+
+          if(fresh.notifyStatus!=='已送出'){
+            sheet2.getRange(fresh.rowNumber,18).setValue('已綁定／可通知');
+          }
+
+          SpreadsheetApp.flush();
+          fresh=rows_().find(r=>r.bookingId===id);
+        }else{
+          sheet2.getRange(fresh.rowNumber,17).setValue('否');
+          SpreadsheetApp.flush();
+          fresh=rows_().find(r=>r.bookingId===id);
+        }
+      }catch(err){}
+    }
+
     const result=sendBookingConfirmation_(fresh);
 
     clearCache_();
@@ -382,6 +551,123 @@ function verifyLineUser_(accessToken){
     displayName:String(profile.displayName||''),
     friendFlag:friendFlag
   };
+}
+
+
+
+function refreshLineFriendByToken_(d){
+  const accessToken=String(d.lineAccessToken||'').trim();
+
+  if(!accessToken){
+    return json_({success:false,message:'請先完成 LINE 登入'});
+  }
+
+  const line=verifyLineUser_(accessToken);
+
+  if(!line.userId){
+    return json_({success:false,message:'無法取得 LINE 使用者資料'});
+  }
+
+  const lock=LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try{
+    const sheet=bookSheet_();
+    const rows=rows_();
+
+    const matched=rows.filter(r=>
+      r.lineUserId===line.userId &&
+      r.bookingStatus!=='已取消'
+    );
+
+    // 就算尚未有報名，也回傳好友狀態，讓前端可以顯示成功
+    matched.forEach(r=>{
+      sheet.getRange(r.rowNumber,15).setValue(line.userId);
+      sheet.getRange(r.rowNumber,16).setValue(line.displayName||'');
+      sheet.getRange(r.rowNumber,17).setValue(line.friendFlag?'是':'否');
+      sheet.getRange(r.rowNumber,18).setValue(
+        line.friendFlag?'已綁定':'已綁定／未加好友'
+      );
+      sheet.getRange(r.rowNumber,13).setValue(new Date());
+    });
+
+    if(matched.length) SpreadsheetApp.flush();
+
+    return json_({
+      success:true,
+      updated:matched.length,
+      displayName:line.displayName||'',
+      friendFlag:!!line.friendFlag,
+      message:line.friendFlag
+        ? 'LINE 好友狀態已同步'
+        : '目前仍未加入官方帳號好友'
+    });
+  }finally{
+    lock.releaseLock();
+  }
+}
+
+function rebindLineByPhone_(d){
+  const phone=norm_(d.phone);
+  const accessToken=String(d.lineAccessToken||'').trim();
+
+  if(!/^09\d{8}$/.test(phone)){
+    return json_({success:false,message:'請輸入原本報名的正確手機號碼'});
+  }
+  if(!accessToken){
+    return json_({success:false,message:'請先完成 LINE 登入'});
+  }
+
+  const line=verifyLineUser_(accessToken);
+
+  if(!line.userId){
+    return json_({success:false,message:'無法取得 LINE 使用者資料'});
+  }
+
+  const lock=LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try{
+    const sheet=bookSheet_();
+    const rows=rows_();
+
+    const matched=rows.filter(r=>
+      norm_(r.phone)===phone &&
+      r.bookingStatus!=='已取消'
+    );
+
+    if(!matched.length){
+      return json_({
+        success:false,
+        message:'找不到這支手機的有效報名資料'
+      });
+    }
+
+    matched.forEach(r=>{
+      sheet.getRange(r.rowNumber,15).setValue(line.userId);
+      sheet.getRange(r.rowNumber,16).setValue(line.displayName||'');
+      sheet.getRange(r.rowNumber,17).setValue(line.friendFlag?'是':'否');
+      sheet.getRange(r.rowNumber,18).setValue(
+        line.friendFlag?'已綁定':'已綁定／未加好友'
+      );
+      sheet.getRange(r.rowNumber,13).setValue(new Date());
+    });
+
+    SpreadsheetApp.flush();
+
+    return json_({
+      success:true,
+      updated:matched.length,
+      displayName:line.displayName||'',
+      friendFlag:!!line.friendFlag,
+      message:line.friendFlag
+        ? 'LINE 好友狀態已更新'
+        : 'LINE 已重新綁定，但仍未偵測到官方帳號好友'
+    });
+
+  }finally{
+    lock.releaseLock();
+  }
 }
 
 function updateBooking_(d){
@@ -582,7 +868,7 @@ function publicCourses_(){
 }
 
 function ensure_(){
-  const ss=SpreadsheetApp.getActiveSpreadsheet();
+  const ss=getSpreadsheet_();
 
   let b=ss.getSheetByName(CFG.BOOK);
   if(!b){
@@ -676,11 +962,20 @@ function adminOK_(p){
   return String(p||'')===s;
 }
 
+
+function getSpreadsheet_(){
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if(!id){
+    throw new Error('尚未設定 SPREADSHEET_ID');
+  }
+  return SpreadsheetApp.openById(id);
+}
+
 function bookSheet_(){
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CFG.BOOK);
+  return getSpreadsheet_().getSheetByName(CFG.BOOK);
 }
 function setSheet_(){
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CFG.SET);
+  return getSpreadsheet_().getSheetByName(CFG.SET);
 }
 function bool_(v){
   return typeof v==='boolean'
