@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>丙級術科練習｜LINE 通知版</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{--navy:#0d3155;--blue:#1B4B8F;--orange:#F5A623;--red:#b42318;--green:#15734f;--bg:#fff8e8;--card:#fffdf8;--line:#e7dcc7;--text:#172033;--muted:#6d7787}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:linear-gradient(180deg,#fff8e9,#f5f8fc);color:var(--text)}
+.wrap{max-width:1160px;margin:auto;padding:16px 14px 50px}
+.hero{background:linear-gradient(135deg,#0c3155,#0f5d8b);color:white;padding:26px;border-radius:24px}
+.hero h1{margin:8px 0 5px;font-size:31px} .hero p{margin:0;color:#ddecf8;font-weight:700}
+.price{margin-top:14px;font-weight:900;font-size:18px} .price strong{font-size:34px;color:#ffc05c}
+.pay{display:inline-block;margin-top:12px;background:#fff0e3;border:2px solid #ff9c5a;color:#a33112;border-radius:13px;padding:10px 16px;font-size:23px;font-weight:950}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:15px 0} .tab{border:0;padding:13px;border-radius:12px;font-weight:900;background:#ffe9d8} .tab.active{background:#0f5d8b;color:white}
+.panel{display:none} .panel.active{display:block}
+.course-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.course{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:0 8px 24px rgba(20,35,55,.06)}
+.course h3{margin:6px 0 3px;color:var(--blue);font-size:22px}
+.sessions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.ses{border:2px solid #e2d8c8;background:white;border-radius:12px;padding:10px;text-align:left;cursor:pointer}
+.ses.sel{border-color:var(--orange);background:#fff7e8} .ses:disabled{opacity:.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:15px;box-shadow:0 9px 26px rgba(20,35,55,.06)}
+.card h2{margin:0 0 13px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px} .full{grid-column:1/-1}
+label{display:block;font-size:14px;font-weight:900;margin-bottom:6px}
+input,textarea,select{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit}
+textarea{min-height:85px}
+.summary{margin:13px 0;padding:13px;border-radius:12px;background:#fff8e8;border:1px solid var(--line);line-height:1.65}
+.btn{border:0;border-radius:12px;padding:11px 13px;font-weight:900;cursor:pointer}
+.btn-primary{width:100%;background:var(--orange)} .blue{background:var(--blue);color:#fff} .light{background:#fff;border:1px solid var(--line)} .danger{background:#fff0ef;color:#b42318;border:1px solid #ffc9c5}
+.line-box{border:2px solid #06c755;background:#f3fff7;border-radius:16px;padding:15px;margin:15px 0}
+.line-box h3{margin:0 0 7px;color:#087c36}
+.line-status{font-size:14px;line-height:1.7} .line-ok{color:#087c36;font-weight:900} .line-warn{color:#a33112;font-weight:900}
+.line-btn{background:#06c755;color:white;width:100%;font-size:16px}
+.msg{display:none;margin-top:11px;padding:12px;border-radius:12px;font-weight:800} .msg.show{display:block} .msg.ok{background:#eaf8f0;color:#166534} .msg.err{background:#fff0ef;color:#9f1c12} .msg.wait{background:#f1edff;color:#5b45b8}
+.safety{margin-top:15px;border:1px solid #efd9aa;border-radius:14px;padding:15px;background:#fffaf0;line-height:1.7}
+.admin-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0} .stat{background:#fff8e8;border:1px solid var(--line);border-radius:14px;padding:13px} .stat .num{font-size:26px;font-weight:950;color:var(--blue)}
+.settings-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px} .setcard{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}
+.inline{display:grid;grid-template-columns:1fr 1fr;gap:8px} .check{display:flex;gap:7px;align-items:center;margin:8px 0} .check input{width:auto}
+.filters{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:8px;margin:13px 0}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff}
+table{width:100%;border-collapse:collapse;min-width:1450px} th,td{padding:9px;border-bottom:1px solid #eee6d8;text-align:left;font-size:13px;vertical-align:top} th{background:#f7f9fc}
+.badge{display:inline-block;padding:4px 7px;border-radius:999px;font-size:12px;font-weight:900} .good{background:#e9f8ef;color:#17633f} .warn{background:#fff5d9;color:#8a5b00} .bad{background:#fff0ef;color:#9f1c12}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:50} .modal.show{display:flex} .modal-box{background:white;width:min(520px,100%);padding:20px;border-radius:18px}
+.footer{text-align:center;color:#8b93a1;font-size:12px;margin-top:22px}
+@media(max-width:800px){.course-grid,.settings-grid,.stats,.form-grid,.filters{grid-template-columns:1fr}.full{grid-column:auto}.hero h1{font-size:26px}.pay{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="hero">
+  <div style="font-weight:900">丙級檢定練習｜教室租借登記</div>
+  <h1>丙級術科自費練習登記</h1>
+  <p>蛋糕丙級・中餐丙級・麵包丙級｜LINE 確認通知正式版</p>
+  <div class="price">自費練習 <strong>$1,500</strong>／場</div>
+  <div class="pay">⚠ 現場繳費</div>
+</section>
+
+<div class="tabs">
+  <button class="tab active" data-tab="student">學員登記</button>
+  <button class="tab" data-tab="admin">管理員後台</button>
+</div>
+
+<section id="student" class="panel active">
+  <div id="syncState" style="font-size:13px;color:var(--muted);margin-bottom:8px">正在同步最新場次…</div>
+  <div id="courseGrid" class="course-grid"></div>
+
+  <div class="card">
+    <h2>填寫登記資料</h2>
+
+    <div class="line-box">
+      <h3>LINE 通知綁定</h3>
+      <div id="lineStatus" class="line-status">
+        按下面綠色按鈕完成 LINE 登入與加好友，之後管理員確認報名時就會自動通知你。
+      </div>
+      <button id="lineLoginBtn" class="btn line-btn" style="margin-top:10px">加入 LINE 好友並啟用通知</button>
+      <button id="addFriendBtn" class="btn" style="display:none;width:100%;margin-top:10px;background:#ffffff;color:#087c36;border:2px solid #06c755;font-size:16px">
+        加入 LINE 好友並啟用通知
+      </button>
+    </div>
+
+    <div class="form-grid">
+      <div><label>姓名 *</label><input id="name" placeholder="請輸入姓名"></div>
+      <div><label>手機 *</label><input id="phone" inputmode="tel" placeholder="09xx-xxx-xxx"></div>
+      <div class="full"><label>備註</label><textarea id="note" placeholder="例如：想加強刀工、抹面、流程熟悉等"></textarea></div>
+    </div>
+
+    <div id="summary" class="summary">可複選多個練習場次，再一次送出。</div>
+    <button id="submitBtn" class="btn btn-primary" disabled>送出登記</button>
+    <div id="msg" class="msg"></div>
+
+    <div class="safety">
+      <h3>三、租借流程與安全注意事項</h3>
+      <p><b>1. 設備檢查：</b><br>進場練習前，請先確認使用設備、器具及工作區域是否正常；如有異常或損壞，請立即告知管理人員。</p>
+      <p><b>2. 復原、清洗與離場檢查：</b><br>自己的練習區域需完成掃地＋拖地，並將使用物品復原歸位。</p>
+      <p><b>設備清洗：</b>攪拌鋼盆、攪拌鉤、烤盤等工具需使用中性洗劑洗淨並擦乾。</p>
+      <p><b>3. 模擬考押金：</b><br>每人須收取 <b>押金 $300 元</b>，於規定時間內完成並確認場地復原後退回。</p>
+      <p><b>4. 超時收費：</b><br>考試結束後另提供 <b>30 分鐘</b>完成清潔與打包；超過 30 分鐘，<b>押金不退。</b></p>
+    </div>
+  </div>
+</section>
+
+<section id="admin" class="panel">
+  <div class="card" id="loginCard">
+    <h2>管理員登入</h2>
+    <div style="max-width:420px">
+      <label>管理員密碼</label>
+      <input id="adminPassword" type="password">
+      <button id="loginBtn" class="btn blue" style="width:100%;margin-top:8px">登入管理後台</button>
+    </div>
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <div class="card">
+      <div class="admin-toolbar">
+        <div>
+          <h2 style="margin:0">LINE 通知狀態</h2>
+          <div id="lineAdminState" style="margin-top:5px;color:var(--muted)"></div>
+        </div>
+        <button id="refreshBtn" class="btn light">重新整理</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>練習場次設定</h2>
+      <div id="settingsGrid" class="settings-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="admin-toolbar">
+        <h2 style="margin:0">報名管理總覽</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="refreshAllLineBtn" class="btn blue">更新全部 LINE 狀態</button>
+          <button id="exportBtn" class="btn light">匯出 CSV</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div>全部登記</div><div class="num" id="totalN">0</div></div>
+        <div class="stat"><div>正式名額</div><div class="num" id="activeN">0</div></div>
+        <div class="stat"><div>LINE 已綁定</div><div class="num" id="lineN">0</div></div>
+        <div class="stat"><div>通知已送出</div><div class="num" id="notifyN">0</div></div>
+      </div>
+
+      <div class="filters">
+        <input id="searchInput" placeholder="搜尋姓名、手機、報名編號">
+        <select id="courseFilter"><option value="">全部項目</option></select>
+        <select id="statusFilter"><option value="">全部狀態</option><option>待確認</option><option>已確認</option><option>候補</option><option>已取消</option></select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+          <tr>
+            <th>報名編號</th><th>項目</th><th>時段</th><th>姓名</th><th>手機</th>
+            <th>狀態</th><th>付款</th><th>LINE</th><th>通知</th>
+            <th>備註</th><th>管理備註</th><th>登記時間</th><th>操作</th>
+          </tr>
+          </thead>
+          <tbody id="adminRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">丙級練習教室登記系統 V4.6｜管理員更新 LINE 狀態版</div>
+</div>
+
+<div id="editModal" class="modal">
+  <div class="modal-box">
+    <h3>編輯報名資料</h3>
+    <div style="display:grid;gap:9px">
+      <div><label>時段</label><select id="editSession"><option>上午</option><option>下午</option><option>未指定</option></select></div>
+      <div><label>報名狀態</label><select id="editStatus"><option>待確認</option><option>已確認</option><option>候補</option><option>已取消</option></select></div>
+      <div><label>付款狀態</label><select id="editPay"><option>未付款</option><option>已付款</option><option>退款</option></select></div>
+      <div><label>管理備註</label><textarea id="editNote"></textarea></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button id="closeEdit" class="btn light">取消</button>
+      <button id="saveEdit" class="btn blue">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL="https://script.google.com/macros/s/AKfycbxqwAZGX9_kiqKuXBYRlD_btIdsPdFmtFE3kClOEe5OOZwhqE3O42z3CityaIdMeueZ/exec";
+
+/* V4 設定：
+ * LIFF ID 是公開識別碼，可以放前端。
+ * 請把下面 YOUR_LIFF_ID 改成 LINE Developers Console 顯示的 LIFF ID。
+ */
+const LIFF_ID="YOUR_LIFF_ID";
+
+const FALLBACK={
+  cake:{id:"cake",title:"蛋糕丙級",date:"10/21（三）",price:1500,active:true,morning:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false},afternoon:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false}},
+  cook:{id:"cook",title:"中餐丙級",date:"11/4（三）",price:1500,active:true,morning:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false},afternoon:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false}},
+  bread:{id:"bread",title:"麵包丙級",date:"日期待公告",price:1500,active:true,morning:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false},afternoon:{enabled:true,limit:6,count:0,remaining:6,waitlist:0,full:false}}
+};
+
+let publicData={courses:JSON.parse(JSON.stringify(FALLBACK))};
+let selected=new Set();
+let adminPassword="";
+let adminData={bookings:[],settings:[]};
+let editingId="";
+let lineReady=false;
+let lineAccessToken="";
+
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
+
+function msg(t,c="ok"){
+  const e=$("msg");
+  e.className="msg show "+c;
+  e.textContent=t;
+}
+
+function dt(v){
+  if(!v)return"—";
+  const d=new Date(v);
+  return isNaN(d)?v:d.toLocaleString("zh-TW");
+}
+
+
+async function syncExistingBookingsByLine(){
+  if(!window.liff || !liff.isLoggedIn()) return null;
+
+  const token=liff.getAccessToken()||"";
+  if(!token) return null;
+
+  try{
+    const r=await fetch(API_URL,{
+      method:"POST",
+      redirect:"follow",
+      body:JSON.stringify({
+        action:"refreshLineFriendByToken",
+        lineAccessToken:token
+      })
+    });
+
+    const tx=await r.text();
+    if(tx.trim().startsWith("<")) return null;
+
+    const d=JSON.parse(tx);
+    if(!d.success) return null;
+
+    return d;
+  }catch(e){
+    return null;
+  }
+}
+
+async function initLine(){
+  const addFriendBtn=$("addFriendBtn");
+
+  if(!window.liff){
+    $("lineStatus").innerHTML='<span class="line-warn">LINE SDK 載入失敗，目前仍可登記，但無法綁定通知。</span>';
+    addFriendBtn.style.display="none";
+    return;
+  }
+
+  if(!LIFF_ID || LIFF_ID==="YOUR_LIFF_ID"){
+    $("lineStatus").innerHTML='<span class="line-warn">管理員尚未填入 LIFF ID，目前仍可登記，但不會收到 LINE 自動通知。</span>';
+    $("lineLoginBtn").disabled=true;
+    addFriendBtn.style.display="none";
+    return;
+  }
+
+  try{
+    await liff.init({liffId:LIFF_ID});
+
+    if(!liff.isLoggedIn()){
+      $("lineStatus").innerHTML='尚未登入 LINE。登入後，管理員確認報名時即可傳通知給你。';
+      $("lineLoginBtn").textContent="加入 LINE 好友並啟用通知";
+      addFriendBtn.style.display="none";
+      lineReady=false;
+      lineAccessToken="";
+      return;
+    }
+
+    lineAccessToken=liff.getAccessToken()||"";
+
+    let profile={displayName:"LINE 使用者"};
+    try{ profile=await liff.getProfile(); }catch(e){}
+
+    let friendship=null;
+    try{ friendship=await liff.getFriendship(); }catch(e){}
+
+    lineReady=!!lineAccessToken;
+    $("lineLoginBtn").textContent="LINE 已登入";
+
+    if(friendship && friendship.friendFlag){
+      $("lineStatus").innerHTML=`<span class="line-ok">✓ LINE 已完成：${esc(profile.displayName)}</span><br><span class="line-ok">✓ 已加入好友，可接收報名確認通知。</span>`;
+      addFriendBtn.style.display="none";
+
+      // 自動同步這個 LINE User ID 的既有報名，不需要再輸入電話
+      const sync=await syncExistingBookingsByLine();
+      if(sync && sync.updated>0){
+        $("lineStatus").innerHTML+=`<br><span class="line-ok">✓ 已自動更新 ${sync.updated} 筆既有報名</span>`;
+      }
+    }else{
+      $("lineStatus").innerHTML=`<span class="line-ok">✓ LINE 已登入：${esc(profile.displayName)}</span><br><span class="line-warn">請按下方綠色按鈕加入好友，完成後系統會自動更新。</span>`;
+      addFriendBtn.style.display="block";
+    }
+  }catch(e){
+    $("lineStatus").innerHTML='<span class="line-warn">LINE 初始化失敗，目前仍可登記，但不能綁定通知。</span>';
+    addFriendBtn.style.display="none";
+  }
+}
+$("lineLoginBtn").onclick=async()=>{
+  try{
+    if(!window.liff || !LIFF_ID || LIFF_ID==="YOUR_LIFF_ID"){
+      alert("LINE 尚未完成設定。");
+      return;
+    }
+
+    await liff.init({liffId:LIFF_ID});
+
+    if(!liff.isLoggedIn()){
+      liff.login({redirectUri:window.location.href.split("#")[0]});
+      return;
+    }
+
+    // 已登入就直接走好友流程
+    $("addFriendBtn").click();
+
+  }catch(e){
+    alert("LINE 設定啟動失敗："+e.message);
+  }
+};
+
+$("addFriendBtn").onclick=async()=>{
+  const btn=$("addFriendBtn");
+
+  try{
+    if(!window.liff || !LIFF_ID || LIFF_ID==="YOUR_LIFF_ID"){
+      alert("LINE 尚未完成設定。");
+      return;
+    }
+
+    await liff.init({liffId:LIFF_ID});
+
+    // 還沒登入：先登入，回來後 initLine() 會繼續處理
+    if(!liff.isLoggedIn()){
+      liff.login({redirectUri:window.location.href.split("#")[0]});
+      return;
+    }
+
+    btn.disabled=true;
+    btn.textContent="處理中…";
+
+    let friendship=null;
+    try{ friendship=await liff.getFriendship(); }catch(e){}
+
+    // 還不是好友：開啟 LINE 好友加入視窗
+    if(!friendship || !friendship.friendFlag){
+      if(typeof liff.requestFriendship!=="function"){
+        throw new Error("目前 LINE 環境不支援直接加入好友");
+      }
+
+      await liff.requestFriendship();
+      await new Promise(r=>setTimeout(r,700));
+
+      try{ friendship=await liff.getFriendship(); }catch(e){}
+    }
+
+    if(friendship && friendship.friendFlag){
+      lineAccessToken=liff.getAccessToken()||"";
+
+      const sync=await syncExistingBookingsByLine();
+
+      await initLine();
+
+      if(sync && sync.updated>0){
+        alert(`LINE 好友設定完成！\n已自動更新 ${sync.updated} 筆既有報名，不需要再輸入電話。`);
+      }else{
+        alert("LINE 好友設定完成！之後報名會自動綁定 LINE 通知。");
+      }
+    }else{
+      alert("目前還沒有完成加入好友，請再按一次綠色按鈕。");
+    }
+
+  }catch(e){
+    alert("LINE 好友設定尚未完成：\n"+e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent="加入 LINE 好友並啟用通知";
+  }
+};
+
+$("submitBtn").onclick=async()=>{
+  const name=$("name").value.trim();
+  const phone=$("phone").value.replace(/\D/g,"");
+  const note=$("note").value.trim();
+
+  if(!selected.size)return msg("請至少選擇一個練習場次","err");
+  if(!name)return msg("請填寫姓名","err");
+  if(!/^09\d{8}$/.test(phone))return msg("請輸入正確手機號碼","err");
+
+  const choices=[...selected].map(k=>{
+    const [courseId,session]=k.split("|");
+    return{courseId,session};
+  });
+
+  const b=$("submitBtn");
+
+  try{
+    b.disabled=true;
+    b.textContent="資料送出中…";
+
+    if(lineAccessToken){
+      msg(`正在送出 ${choices.length} 個場次，並綁定 LINE 通知…`,"wait");
+    }else{
+      msg(`正在送出 ${choices.length} 個場次。你尚未綁定 LINE，因此之後不會收到自動通知。`,"wait");
+    }
+
+    // 延續 V3 手機相容策略：no-cors 避免 LINE 內建瀏覽器把成功 POST 誤判成失敗
+    await fetch(API_URL,{
+      method:"POST",
+      mode:"no-cors",
+      body:JSON.stringify({
+        action:"registerBatch",
+        selections:choices,
+        name,
+        phone,
+        note,
+        lineAccessToken:lineAccessToken||""
+      })
+    });
+
+    await new Promise(r=>setTimeout(r,1400));
+
+    $("name").value="";
+    $("phone").value="";
+    $("note").value="";
+    selected.clear();
+
+    if(lineAccessToken){
+      msg(`已送出 ${choices.length} 個練習場次。管理員確認後，將透過 LINE 官方帳號通知。`,"ok");
+    }else{
+      msg(`已送出 ${choices.length} 個練習場次。尚未綁定 LINE，如需自動通知請下次先完成 LINE 登入。`,"ok");
+    }
+
+    await refreshPublic().catch(()=>{});
+  }catch(e){
+    msg("目前無法連線，請稍後再試。","err");
+  }finally{
+    b.textContent="送出登記";
+    summary();
+  }
+};
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  $(b.dataset.tab).classList.add("active");
+});
+
+/* ===== 管理員 ===== */
+$("loginBtn").onclick=async()=>{
+  const p=$("adminPassword").value;
+  if(!p)return alert("請輸入管理員密碼");
+
+  try{
+    adminData=await post({action:"adminList",adminPassword:p});
+    adminPassword=p;
+    $("loginCard").style.display="none";
+    $("dashboard").style.display="block";
+    $("lineAdminState").innerHTML=adminData.lineReady
+      ? '<span class="line-ok">✓ Apps Script 的 LINE 金鑰已設定</span>'
+      : '<span class="line-warn">尚未完整設定 LINE_LOGIN_CHANNEL_ID / LINE_CHANNEL_ACCESS_TOKEN</span>';
+    renderSettings();
+    renderAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+async function refreshAdmin(){
+  adminData=await post({action:"adminList",adminPassword});
+  renderSettings();
+  renderAdmin();
+  await refreshPublic();
+}
+$("refreshBtn").onclick=()=>refreshAdmin().catch(e=>alert(e.message));
+
+function renderSettings(){
+  const g=$("settingsGrid");
+  g.innerHTML="";
+
+  (adminData.settings||[]).forEach(c=>{
+    const d=document.createElement("div");
+    d.className="setcard";
+    d.innerHTML=`
+      <h3>${esc(c.title)}</h3>
+      <label>項目名稱</label><input id="t_${c.id}" value="${esc(c.title)}">
+      <label>練習日期</label><input id="d_${c.id}" value="${esc(c.date)}">
+      <div class="inline">
+        <div><label>上午上限</label><input id="ml_${c.id}" type="number" min="1" value="${c.morningLimit}"></div>
+        <div><label>下午上限</label><input id="al_${c.id}" type="number" min="1" value="${c.afternoonLimit}"></div>
+      </div>
+      <div class="check"><input id="me_${c.id}" type="checkbox" ${c.morningEnabled?"checked":""}><span>開放上午</span></div>
+      <div class="check"><input id="ae_${c.id}" type="checkbox" ${c.afternoonEnabled?"checked":""}><span>開放下午</span></div>
+      <div class="check"><input id="ac_${c.id}" type="checkbox" ${c.active?"checked":""}><span>顯示此項目</span></div>
+      <label>費用</label><input id="p_${c.id}" type="number" value="${c.price}">
+      <button class="btn blue" style="width:100%;margin-top:8px" onclick="saveSet('${c.id}')">儲存設定</button>`;
+    g.appendChild(d);
+  });
+
+  const cf=$("courseFilter");
+  const cur=cf.value;
+  cf.innerHTML='<option value="">全部項目</option>'+
+    (adminData.settings||[]).map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("");
+  cf.value=cur;
+}
+
+window.saveSet=async id=>{
+  try{
+    await post({
+      action:"updateCourseSettings",
+      adminPassword,
+      courseId:id,
+      title:$("t_"+id).value.trim(),
+      date:$("d_"+id).value.trim(),
+      morningEnabled:$("me_"+id).checked,
+      morningLimit:Number($("ml_"+id).value),
+      afternoonEnabled:$("ae_"+id).checked,
+      afternoonLimit:Number($("al_"+id).value),
+      price:Number($("p_"+id).value),
+      active:$("ac_"+id).checked
+    });
+
+    alert("場次設定已更新");
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+function filtered(){
+  const q=$("searchInput").value.toLowerCase();
+  const c=$("courseFilter").value;
+  const s=$("statusFilter").value;
+
+  return(adminData.bookings||[]).filter(r=>
+    (!q||[r.bookingId,r.name,r.phone,r.lineDisplayName].some(v=>String(v||"").toLowerCase().includes(q))) &&
+    (!c||r.courseId===c) &&
+    (!s||r.bookingStatus===s)
+  );
+}
+
+["searchInput","courseFilter","statusFilter"].forEach(id=>$(id).addEventListener("input",renderAdmin));
+
+function renderAdmin(){
+  const rows=adminData.bookings||[];
+
+  $("totalN").textContent=rows.length;
+  $("activeN").textContent=rows.filter(r=>["待確認","已確認"].includes(r.bookingStatus)).length;
+  $("lineN").textContent=rows.filter(r=>!!r.lineUserId).length;
+  $("notifyN").textContent=rows.filter(r=>r.notifyStatus==="已送出").length;
+
+  const tb=$("adminRows");
+  const list=filtered();
+
+  if(!list.length){
+    tb.innerHTML='<tr><td colspan="13" style="text-align:center;padding:20px">沒有資料</td></tr>';
+    return;
+  }
+
+  tb.innerHTML=list.map(r=>{
+    const lineHtml=r.lineUserId
+      ? `<span class="badge good">已綁定</span><br><small>${esc(r.lineDisplayName||"")}</small><br><small>好友：${esc(r.lineFriend||"未知")}</small>`
+      : '<span class="badge bad">未綁定</span>';
+
+    const notifyHtml=r.notifyStatus==="已送出"
+      ? `<span class="badge good">已送出</span><br><small>${dt(r.lastNotifyAt)}</small>`
+      : `<span class="badge warn">${esc(r.notifyStatus||"尚未通知")}</span>`;
+
+    return `<tr>
+      <td>${esc(r.bookingId)}</td>
+      <td><b>${esc(r.courseTitle)}</b><br><small>${esc(r.date)}</small></td>
+      <td><b>${esc(r.session||"未指定")}</b></td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.phone)}</td>
+      <td>${esc(r.bookingStatus)}</td>
+      <td>${esc(r.paymentStatus)}</td>
+      <td>${lineHtml}</td>
+      <td>${notifyHtml}</td>
+      <td>${esc(r.note||"—")}</td>
+      <td>${esc(r.adminNote||"—")}</td>
+      <td>${dt(r.createdAt)}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;min-width:230px">
+          <button class="btn light" onclick="refreshLineRow('${esc(r.bookingId)}')">更新 LINE 狀態</button>
+          <button class="btn blue" onclick="confirmNotify('${esc(r.bookingId)}')">確認並通知</button>
+          <button class="btn light" onclick="notifyAgain('${esc(r.bookingId)}')">重送通知</button>
+          <button class="btn light" onclick="openEdit('${esc(r.bookingId)}')">編輯</button>
+          ${r.bookingStatus!=="已取消"?`<button class="btn danger" onclick="cancelRow('${esc(r.bookingId)}')">取消</button>`:""}
+          <button class="btn danger" onclick="deleteRow('${esc(r.bookingId)}','${esc(r.name)}')">刪除</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+
+window.refreshLineRow=async id=>{
+  try{
+    const d=await post({
+      action:"refreshLineStatusForBooking",
+      adminPassword,
+      bookingId:id
+    });
+
+    if(d.available){
+      alert("LINE 狀態已更新：現在可以通知。");
+    }else{
+      alert("目前仍無法通知。\n可能是尚未加好友、已封鎖，或官方帳號無法取得此使用者資料。");
+    }
+
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+$("refreshAllLineBtn").onclick=async()=>{
+  if(!confirm("確定重新檢查所有已綁定 LINE 的報名？"))return;
+
+  const btn=$("refreshAllLineBtn");
+
+  try{
+    btn.disabled=true;
+    btn.textContent="更新中…";
+
+    const d=await post({
+      action:"refreshAllLineStatuses",
+      adminPassword
+    });
+
+    alert(
+      "LINE 狀態更新完成\n\n"+
+      "檢查："+d.checked+" 筆\n"+
+      "可通知："+d.available+" 筆\n"+
+      "目前不可通知："+d.unavailable+" 筆"+
+      (d.errors ? "\n錯誤："+d.errors+" 筆" : "")
+    );
+
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent="更新全部 LINE 狀態";
+  }
+};
+
+window.confirmNotify=async id=>{
+  if(!confirm("確定將此報名改為「已確認」，並傳送 LINE 通知？"))return;
+
+  try{
+    const d=await post({action:"confirmAndNotify",adminPassword,bookingId:id});
+    if(d.notification && d.notification.sent){
+      alert("已確認，LINE 通知已送出。");
+    }else{
+      alert("報名已確認，但 LINE 未送出：\n"+((d.notification&&d.notification.message)||"未知原因"));
+    }
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+window.notifyAgain=async id=>{
+  if(!confirm("確定重新傳送 LINE 確認通知？"))return;
+
+  try{
+    const d=await post({action:"sendLineNotify",adminPassword,bookingId:id});
+    alert((d.notification&&d.notification.message)||"通知處理完成");
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+window.openEdit=id=>{
+  const r=(adminData.bookings||[]).find(x=>x.bookingId===id);
+  if(!r)return;
+
+  editingId=id;
+  $("editSession").value=r.session||"未指定";
+  $("editStatus").value=r.bookingStatus;
+  $("editPay").value=r.paymentStatus;
+  $("editNote").value=r.adminNote||"";
+  $("editModal").classList.add("show");
+};
+
+$("closeEdit").onclick=()=>$("editModal").classList.remove("show");
+
+$("saveEdit").onclick=async()=>{
+  try{
+    const d=await post({
+      action:"updateBooking",
+      adminPassword,
+      bookingId:editingId,
+      session:$("editSession").value,
+      bookingStatus:$("editStatus").value,
+      paymentStatus:$("editPay").value,
+      adminNote:$("editNote").value.trim()
+    });
+
+    $("editModal").classList.remove("show");
+
+    if(d.promoted) alert("已自動遞補："+d.promoted.name);
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+window.cancelRow=async id=>{
+  if(!confirm("確定標記為已取消？"))return;
+  try{
+    const d=await post({action:"cancelBooking",adminPassword,bookingId:id});
+    if(d.promoted)alert("已自動遞補："+d.promoted.name);
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+window.deleteRow=async(id,name)=>{
+  if(!confirm(`確定永久刪除「${name}」？刪除後無法復原。`))return;
+  if(!confirm("再次確認：真的要永久刪除嗎？"))return;
+
+  try{
+    const d=await post({action:"deleteBooking",adminPassword,bookingId:id});
+    if(d.promoted)alert("已刪除，並自動遞補："+d.promoted.name);
+    else alert("資料已永久刪除");
+    await refreshAdmin();
+  }catch(e){
+    alert(e.message);
+  }
+};
+
+$("exportBtn").onclick=()=>{
+  const rows=filtered();
+  const a=[[
+    "報名編號","時間","項目","日期","時段","姓名","手機","狀態","付款",
+    "LINE顯示名稱","LINE好友","通知狀態","最後通知時間",
+    "備註","管理備註","費用"
+  ]];
+
+  rows.forEach(r=>a.push([
+    r.bookingId,dt(r.createdAt),r.courseTitle,r.date,r.session,r.name,r.phone,
+    r.bookingStatus,r.paymentStatus,r.lineDisplayName,r.lineFriend,r.notifyStatus,
+    dt(r.lastNotifyAt),r.note,r.adminNote,r.price
+  ]));
+
+  const csv=a.map(row=>row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv"});
+  const x=document.createElement("a");
+  x.href=URL.createObjectURL(blob);
+  x.download="丙級練習登記名單_LINE版.csv";
+  x.click();
+};
+
+try{
+  const c=localStorage.getItem('practice_v4_cache');
+  if(c)publicData=JSON.parse(c);
+}catch(e){}
+
+renderCourses();
+summary();
+setTimeout(refreshPublic,20);
+setTimeout(initLine,80);
+</script>
+</body>
+</html>
