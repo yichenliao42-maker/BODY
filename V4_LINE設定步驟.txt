@@ -1,0 +1,218 @@
+V4｜LINE 正式通知版 設定說明
+================================
+
+這一版不會覆蓋 V3。
+V3 請繼續保留，V4 使用新的資料夾與檔案。
+
+--------------------------------
+一、V4 的完整流程
+--------------------------------
+
+學員：
+1. 開啟 GitHub Pages 登記網站
+2. 按「LINE 登入／綁定通知」
+3. LINE Login 完成
+4. 加入你的 LINE 官方帳號好友
+5. 選擇蛋糕／中餐／麵包與上午／下午
+6. 送出登記
+
+系統：
+- Google Sheet 保存報名
+- 同時保存經 LINE 後端驗證後取得的 LINE User ID
+- 管理員後台可看到「已綁定／未綁定」
+
+管理員：
+1. 找到該筆報名
+2. 按「確認並通知」
+3. 狀態改為「已確認」
+4. LINE 官方帳號自動傳確認通知給學員
+
+--------------------------------
+二、你需要準備的 LINE 項目
+--------------------------------
+
+A. 一個 LINE 官方帳號
+B. Messaging API Channel
+C. LINE Login Channel
+D. LIFF App
+
+非常重要：
+Messaging API Channel 和 LINE Login Channel
+必須建立在「同一個 Provider」下面。
+
+--------------------------------
+三、LINE Developers 設定順序
+--------------------------------
+
+1. 進 LINE Developers Console
+2. 建立或選擇一個 Provider
+3. 確認你的 LINE 官方帳號 Messaging API Channel 在此 Provider
+4. 在同一 Provider 建立 LINE Login Channel
+5. 到 LINE Login Channel → Basic settings
+6. Linked LINE Official Account → 選擇你的 LINE 官方帳號
+7. 建立 LIFF App
+8. LIFF Endpoint URL 填你的 GitHub Pages 網址
+   例如：
+   https://你的帳號.github.io/你的專案/
+9. Scope 至少開：
+   - profile
+   - openid
+
+建立後會拿到 LIFF ID，例如：
+2001234567-AbCdEfGh
+
+--------------------------------
+四、修改 index.html
+--------------------------------
+
+搜尋：
+
+const LIFF_ID="YOUR_LIFF_ID";
+
+把 YOUR_LIFF_ID 換成你真正的 LIFF ID。
+
+例如：
+
+const LIFF_ID="2001234567-AbCdEfGh";
+
+LIFF ID 不是密碼，可以放 GitHub。
+
+--------------------------------
+五、Apps Script 指令碼屬性
+--------------------------------
+
+Google Sheet
+→ 擴充功能
+→ Apps Script
+→ 專案設定
+→ 指令碼屬性
+
+需要三個：
+
+1.
+ADMIN_PASSWORD
+= 你的管理員密碼
+
+2.
+LINE_LOGIN_CHANNEL_ID
+= LINE Login Channel 的 Channel ID
+
+3.
+LINE_CHANNEL_ACCESS_TOKEN
+= Messaging API Channel Access Token
+
+注意：
+LINE_CHANNEL_ACCESS_TOKEN 是機密。
+絕對不要放 index.html，也不要上傳 GitHub。
+
+--------------------------------
+六、Messaging API Channel Access Token
+--------------------------------
+
+到 LINE Developers Console
+→ Messaging API Channel
+→ Messaging API
+→ Channel access token
+
+建立／取得 Channel access token。
+
+把它放到 Apps Script：
+LINE_CHANNEL_ACCESS_TOKEN
+
+--------------------------------
+七、更新 Apps Script
+--------------------------------
+
+先備份你原本 V3 Code.gs。
+
+再：
+1. 將 V4 Code.gs 貼到 Apps Script
+2. 儲存
+3. 部署
+4. 管理部署
+5. 編輯目前 Web App
+6. 建立新版本
+7. 執行身分：我
+8. 誰可以存取：任何人
+9. 部署
+
+目前 V4 index.html 使用的 Apps Script URL：
+https://script.google.com/macros/s/AKfycbxqwAZGX9_kiqKuXBYRlD_btIdsPdFmtFE3kClOEe5OOZwhqE3O42z3CityaIdMeueZ/exec
+
+如果你重新建立新的 Web App URL，
+請同步修改 index.html 的 API_URL。
+
+--------------------------------
+八、更新 GitHub
+--------------------------------
+
+建議不要直接覆蓋 V3。
+
+例如 GitHub repository 可做：
+
+/v3/index.html
+/v4/index.html
+
+或者另外建立一個 v4 repository。
+
+V4 測試正常後，再決定是否把首頁切到 V4。
+
+--------------------------------
+九、第一次使用後 Google Sheet 會多的欄位
+--------------------------------
+
+原本欄位後面會增加：
+
+LINE User ID
+LINE 顯示名稱
+LINE 好友
+通知狀態
+最後通知時間
+
+舊的 V3 資料不會刪除。
+
+舊資料因為沒有 LINE User ID，
+管理員後台會顯示「未綁定」。
+
+--------------------------------
+十、管理員按鈕
+--------------------------------
+
+「確認並通知」
+- 將報名改成已確認
+- 同時傳 LINE 確認通知
+
+「重送通知」
+- 不改報名狀態
+- 再傳一次確認通知
+
+「編輯」
+- 修改狀態／付款／時段／備註
+
+「取消」
+- 保留歷史資料
+- 狀態改為已取消
+
+「刪除」
+- 永久刪除 Google Sheet 該列
+- 無法復原
+
+--------------------------------
+十一、正式上線前測試
+--------------------------------
+
+請用一個真正的學員 LINE 帳號測試：
+
+1. 加入你的官方帳號好友
+2. 從手機開 V4
+3. LINE 登入
+4. 登記一筆
+5. 管理員後台確認「LINE 已綁定」
+6. 按「確認並通知」
+7. 確認手機收到官方帳號訊息
+
+如果後台顯示「LINE 已綁定」但收不到：
+- 確認學員沒有封鎖官方帳號
+- 確認 Messaging API 與 LINE Login 在同一 Provider
+- 確認 Channel Access Token 正確
+- 確認 Linked LINE Official Account 已設定

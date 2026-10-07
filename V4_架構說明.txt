@@ -1,0 +1,30 @@
+V4 架構與安全設計
+================
+
+GitHub Pages
+  ↓
+LIFF / LINE Login
+  ↓（只把 access token 送給伺服器）
+Google Apps Script
+  ↓ 驗證 access token
+LINE Login API
+  ↓
+取得可信任的 LINE User ID / 顯示名稱 / 好友狀態
+  ↓
+Google Sheet
+
+管理員後台
+  ↓
+「確認並通知」
+  ↓
+Apps Script
+  ↓ 使用伺服器端 LINE_CHANNEL_ACCESS_TOKEN
+LINE Messaging API
+  ↓
+學員 LINE
+
+安全原則：
+- 不相信前端自行傳來的 LINE User ID
+- 前端傳 access token，後端再向 LINE 驗證
+- Channel Access Token 不放 GitHub
+- 管理員密碼仍由 Apps Script Script Properties 保存
