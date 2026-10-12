@@ -56,7 +56,7 @@
 <div id="bookingModal" class="modal"><div class="modal-box"><h3>編輯報名資料</h3><div style="display:grid;gap:9px"><div><label>時段</label><select id="editPart"><option>上午</option><option>下午</option><option>未指定</option></select></div><div><label>報名狀態</label><select id="editBookingStatus"><option>待確認</option><option>已確認</option><option>候補</option><option>已取消</option></select></div><div><label>付款狀態</label><select id="editPaymentStatus"><option>未付款</option><option>已付款</option><option>退款</option></select></div><div><label>管理備註</label><textarea id="editAdminNote"></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button id="closeBookingModal" class="btn light">取消</button><button id="saveBookingBtn" class="btn blue">儲存</button></div></div></div>
 <script>
 const API_URL="https://script.google.com/macros/s/AKfycbxqwAZGX9_kiqKuXBYRlD_btIdsPdFmtFE3kClOEe5OOZwhqE3O42z3CityaIdMeueZ/exec";
-const LIFF_ID="YOUR_LIFF_ID";
+const LIFF_ID="2011914509-JMEwZvYL";
 let sessions=[],selected=new Set(),lineAccessToken="",adminPassword="",adminData={sessions:[],bookings:[]},editingSessionId="",editingBookingId="",sessionStatusFilter="";
 const $=id=>document.getElementById(id), esc=v=>String(v??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s])), fmt=v=>{if(!v)return"—";const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString("zh-TW")};
 async function apiPost(payload){const r=await fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});const tx=await r.text();if(tx.trim().startsWith("<"))throw new Error("Apps Script 回傳了網頁，請確認部署權限");const d=JSON.parse(tx);if(!d.success)throw new Error(d.message||"操作失敗");return d}
